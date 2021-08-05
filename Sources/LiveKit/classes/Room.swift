@@ -33,42 +33,46 @@ public class Room {
     public private(set) var activeSpeakers: [Participant] = []
 
     private var connectOptions: ConnectOptions
-    private let monitor: NWPathMonitor
-    private let monitorQueue: DispatchQueue
-    private var prevPath: NWPath?
+//    private let monitor: NWPathMonitor
+//    private let monitorQueue: DispatchQueue
+    private let reachability: Reachability
+    
+    private var prevReachabilityConnection: Reachability.Connection?
+//    private var prevPath: NWPath?
     private var lastPathUpdate: TimeInterval = 0
     internal var engine: RTCEngine
 
     init(options: ConnectOptions) {
         connectOptions = options
-
-        monitor = NWPathMonitor()
-        monitorQueue = DispatchQueue(label: "networkMonitor", qos: .background)
+        
+        reachability = try! Reachability()
+//        monitor = NWPathMonitor()
+//        monitorQueue = DispatchQueue(label: "networkMonitor", qos: .background)
         engine = RTCEngine(client: SignalClient())
 
-        monitor.pathUpdateHandler = { path in
-            logger.debug("network path update: \(path.availableInterfaces), \(path.status)")
-            if self.prevPath == nil || path.status != .satisfied {
-                self.prevPath = path
-                return
-            }
-
-            // In iOS 14.4, this update is sent multiple times during a connection change
-            // ICE restarts are expensive and error prone (due to renegotiation)
-            // We'll ignore frequent updates
-            let currTime = Date().timeIntervalSince1970
-            if currTime - self.lastPathUpdate < networkChangeIgnoreInterval {
-                logger.debug("skipping duplicate network update")
-                return
-            }
-            // trigger reconnect
-            if self.state != .disconnected {
-                logger.info("network path changed, starting engine reconnect")
-                self.reconnect()
-            }
-            self.prevPath = path
-            self.lastPathUpdate = currTime
-        }
+//        monitor.pathUpdateHandler = { path in
+//            logger.debug("network path update: \(path.availableInterfaces), \(path.status)")
+//            if self.prevPath == nil || path.status != .satisfied {
+//                self.prevPath = path
+//                return
+//            }
+//
+//            // In iOS 14.4, this update is sent multiple times during a connection change
+//            // ICE restarts are expensive and error prone (due to renegotiation)
+//            // We'll ignore frequent updates
+//            let currTime = Date().timeIntervalSince1970
+//            if currTime - self.lastPathUpdate < networkChangeIgnoreInterval {
+//                logger.debug("skipping duplicate network update")
+//                return
+//            }
+//            // trigger reconnect
+//            if self.state != .disconnected {
+//                logger.info("network path changed, starting engine reconnect")
+//                self.reconnect()
+//            }
+//            self.prevPath = path
+//            self.lastPathUpdate = currTime
+//        }
 
         engine.delegate = self
     }
@@ -80,8 +84,15 @@ public class Room {
         }
 
         state = .connecting
-        monitor.start(queue: monitorQueue)
+//        monitor.start(queue: monitorQueue)
         engine.join(options: connectOptions)
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(reachabilityChanged(note:)), name: .reachabilityChanged, object: reachability)
+        do {
+            try reachability.startNotifier()
+        } catch {
+            print("could not start reachability notifier")
+        }
     }
 
     public func disconnect() {
@@ -178,10 +189,38 @@ public class Room {
 
         remoteParticipants.removeAll()
         activeSpeakers.removeAll()
-        monitor.cancel()
+//        monitor.cancel()
         delegate?.didDisconnect(room: self, error: nil)
         // should be the only call from delegate, room is done
         delegate = nil
+        
+        reachability.stopNotifier()
+        NotificationCenter.default.removeObserver(self, name: .reachabilityChanged, object: reachability)
+    }
+    
+    @objc func reachabilityChanged(note: Notification) {
+        let reachability = note.object as! Reachability
+        let connection = reachability.connection;
+        if self.prevReachabilityConnection == nil || reachability.connection == .unavailable {
+            self.prevReachabilityConnection = connection
+            return
+        }
+
+        // In iOS 14.4, this update is sent multiple times during a connection change
+        // ICE restarts are expensive and error prone (due to renegotiation)
+        // We'll ignore frequent updates
+        let currTime = Date().timeIntervalSince1970
+        if currTime - self.lastPathUpdate < networkChangeIgnoreInterval {
+            logger.debug("skipping duplicate network update")
+            return
+        }
+        // trigger reconnect
+        if self.state != .disconnected {
+            logger.info("network path changed, starting engine reconnect")
+            self.reconnect()
+        }
+        self.prevReachabilityConnection = connection
+        self.lastPathUpdate = currTime
     }
 }
 
