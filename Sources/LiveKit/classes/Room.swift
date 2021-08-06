@@ -33,12 +33,9 @@ public class Room {
     public private(set) var activeSpeakers: [Participant] = []
 
     private var connectOptions: ConnectOptions
-//    private let monitor: NWPathMonitor
-//    private let monitorQueue: DispatchQueue
     private let reachability: Reachability
     
     private var prevReachabilityConnection: Reachability.Connection?
-//    private var prevPath: NWPath?
     private var lastPathUpdate: TimeInterval = 0
     internal var engine: RTCEngine
 
@@ -46,34 +43,7 @@ public class Room {
         connectOptions = options
         
         reachability = try! Reachability()
-//        monitor = NWPathMonitor()
-//        monitorQueue = DispatchQueue(label: "networkMonitor", qos: .background)
         engine = RTCEngine(client: SignalClient())
-
-//        monitor.pathUpdateHandler = { path in
-//            logger.debug("network path update: \(path.availableInterfaces), \(path.status)")
-//            if self.prevPath == nil || path.status != .satisfied {
-//                self.prevPath = path
-//                return
-//            }
-//
-//            // In iOS 14.4, this update is sent multiple times during a connection change
-//            // ICE restarts are expensive and error prone (due to renegotiation)
-//            // We'll ignore frequent updates
-//            let currTime = Date().timeIntervalSince1970
-//            if currTime - self.lastPathUpdate < networkChangeIgnoreInterval {
-//                logger.debug("skipping duplicate network update")
-//                return
-//            }
-//            // trigger reconnect
-//            if self.state != .disconnected {
-//                logger.info("network path changed, starting engine reconnect")
-//                self.reconnect()
-//            }
-//            self.prevPath = path
-//            self.lastPathUpdate = currTime
-//        }
-
         engine.delegate = self
     }
 
@@ -84,7 +54,6 @@ public class Room {
         }
 
         state = .connecting
-//        monitor.start(queue: monitorQueue)
         engine.join(options: connectOptions)
         
         NotificationCenter.default.addObserver(self, selector: #selector(reachabilityChanged(note:)), name: .reachabilityChanged, object: reachability)
@@ -189,7 +158,6 @@ public class Room {
 
         remoteParticipants.removeAll()
         activeSpeakers.removeAll()
-//        monitor.cancel()
         delegate?.didDisconnect(room: self, error: nil)
         // should be the only call from delegate, room is done
         delegate = nil
