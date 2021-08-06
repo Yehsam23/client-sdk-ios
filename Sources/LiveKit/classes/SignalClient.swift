@@ -95,6 +95,7 @@ class SignalClient : NSObject {
         webSocket = WebSocket(request: URLRequest(url: parsedUrl))
         webSocket?.callbackQueue = dispatchQueue ?? DispatchQueue.main
         webSocket?.delegate = self
+        webSocket?.connect()
 
         existing?.disconnect()
     }
