@@ -63,7 +63,12 @@ public class LiveKit {
             audioConfig.categoryOptions = validOptions
             let audioSession = AVAudioSession.sharedInstance()
             do {
-                try audioSession.setCategory(category, mode: mode, policy: validPolicy, options: validOptions)
+                if #available(iOS 11.0, *) {
+                    try audioSession.setCategory(category, mode: mode, policy: validPolicy, options: validOptions)
+                } else {
+                    try audioSession.setCategory(category, options: validOptions)
+                    try audioSession.setMode(mode)
+                }
                 try audioSession.setActive(true)
                 audioConfigured = true
             } catch {
