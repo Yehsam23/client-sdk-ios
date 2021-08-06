@@ -92,7 +92,7 @@ class SignalClient : NSObject {
 //        webSocket = urlSession!.webSocketTask(with: parsedUrl)
 //        webSocket?.resume()
         
-        webSocket = WebSocket(request: URLRequest(url: parsedUrl))
+        webSocket = WebSocket(request: URLRequest(url: parsedUrl), certPinner: nil, compressionHandler: nil, useCustomEngine: false)
         webSocket?.callbackQueue = dispatchQueue ?? DispatchQueue.main
         webSocket?.delegate = self
         webSocket?.connect()
