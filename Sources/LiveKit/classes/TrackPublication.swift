@@ -28,7 +28,7 @@ public class TrackPublication {
         sid = info.sid
         name = info.name
         kind = Track.fromProtoKind(info.type)
-        muted = info.muted
+//        muted = info.muted
         self.track = track
         self.participant = participant
         updateFromInfo(info: info)
