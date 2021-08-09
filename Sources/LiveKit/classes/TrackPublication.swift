@@ -12,7 +12,7 @@ public class TrackPublication {
     public internal(set) var name: String
     public private(set) var sid: String
     public private(set) var kind: Track.Kind
-    public internal(set) var muted: Bool
+    public internal(set) var muted: Bool = false
 
     /// video-only
     public internal(set) var dimensions: Track.Dimensions?

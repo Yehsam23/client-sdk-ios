@@ -15,9 +15,9 @@ public class RemoteTrackPublication: TrackPublication {
 
     override public internal(set) var muted: Bool {
         didSet {
-//            if muted == oldValue {
-//                return
-//            }
+            if muted == oldValue {
+                return
+            }
             guard let participant = self.participant else {
                 return
             }
